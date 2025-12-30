@@ -342,7 +342,7 @@ export default function App() {
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <Info size={16} />
                     <small>
-                        <b>Scoring Weights:</b> Goals: 5.0 | Assists: 3.0 | Penalty Won: 2.0 | Big Chance Missed: -1.0 | Poss. Won 3rd: 0.2
+                        <b>Scoring Weights:</b> Goals: 5.0 | Assists: 3.0 | Penalty Won: 2.0 | Big Chance Missed: -1.0 | MotM: +1.0
                     </small>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

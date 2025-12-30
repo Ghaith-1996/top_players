@@ -41,7 +41,8 @@ class BonusService:
             "bonusAssistTop4": 0.0,
             "bonusUclQF": 0.0,
             "bonusUclSF": 0.0,
-            "bonusUclFinal": 0.0
+            "bonusUclFinal": 0.0,
+            "bonusMotm": 0.0
         }
 
         try:
@@ -54,9 +55,15 @@ class BonusService:
                 # On vérifie si c'est un but ou assist
                 goals = int(m.get("goals", 0) or 0)
                 assists = int(m.get("assists", 0) or 0)
+                is_motm = bool(m.get("playerOfTheMatch", False))
                 
-                if goals == 0 and assists == 0:
+                if goals == 0 and assists == 0 and not is_motm:
                     continue
+
+                if is_motm:
+                    val = WEIGHTS.bonusMotm
+                    bonus_score += val
+                    breakdown["bonusMotm"] += val
 
                 opp_raw = m.get("opponentTeamId")
                 if opp_raw is None: continue

@@ -29,6 +29,7 @@ class ScoringWeights:
     bonusAssistUclSF: float = 3.0
     bonusGoalUclFinal: float = 10.0
     bonusAssistUclFinal: float = 6.0
+    bonusMotm: float = 1.0
 
 WEIGHTS = ScoringWeights()
 
