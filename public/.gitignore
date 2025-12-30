@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+
+web/node_modules/
+web/dist/
+
+node_modules/
+public/
+!.gitkeep
