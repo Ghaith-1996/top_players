@@ -38,11 +38,19 @@ export default function App() {
                 const results = await Promise.all(promises);
                 const merged = results.flat();
 
-                // Sort by score
+                // Sort by score first to ensure highest scores come first
                 merged.sort((a, b) => b.score - a.score);
 
-                // Keep only unique players (in case of league transfers)
-                const unique = Array.from(new Map(merged.map(p => [p.id, p])).values());
+                // Keep only unique players, maintaining the highest score version
+                const uniqueMap = new Map<number, Player>();
+                merged.forEach(p => {
+                    if (!uniqueMap.has(p.id) || p.score > uniqueMap.get(p.id)!.score) {
+                        uniqueMap.set(p.id, p);
+                    }
+                });
+
+                const unique = Array.from(uniqueMap.values());
+                unique.sort((a, b) => b.score - a.score);
                 setPlayers(unique.slice(0, 10));
             } else {
                 const data = await fetchPlayers({ leagueId, season, minMinutes, limit });
@@ -171,40 +179,46 @@ export default function App() {
                 <div style={{ animation: "fadeIn 0.5s ease" }}>
                     {players.length >= 3 ? (
                         <div className="pyramid-container">
-                            {/* Ranking 2 (Left) */}
+                            {/* Ranking 2 (Left) - Silver */}
                             <div className="podium-step rank-2">
-                                <div className="player-avatar">🥈</div>
-                                <div className="podium-box" style={{ height: "auto" }}>
-                                    <div style={{ fontWeight: 800, fontSize: 18 }}>{players[1].name}</div>
-                                    <div style={{ color: "#94a3b8", fontSize: 13 }}>{players[1].team}</div>
-                                    <div style={{ marginTop: 4, fontSize: 11, color: "var(--primary)" }}>{players[1].league ?? ""}</div>
-                                    <div style={{ marginTop: 20, fontSize: 32, fontWeight: 900, color: "var(--text-main)" }}>
+                                <div className="player-avatar" style={{ borderColor: "#94a3b8" }}>🥈</div>
+                                <div className="podium-box">
+                                    <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 4 }}>{players[1].name}</div>
+                                    <div style={{ color: "var(--text-muted)", fontSize: 13 }}>{players[1].team}</div>
+                                    <div style={{ marginTop: 8, fontSize: 12, color: "var(--primary)", fontWeight: 600, textTransform: "uppercase" }}>
+                                        {players[1].league ?? "Unknown"}
+                                    </div>
+                                    <div style={{ marginTop: 24, fontSize: 38, fontWeight: 900, color: "#94a3b8" }}>
                                         {players[1].score.toFixed(1)}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Ranking 1 (Center) */}
+                            {/* Ranking 1 (Center) - Gold */}
                             <div className="podium-step rank-1">
-                                <div className="player-avatar" style={{ transform: "scale(1.2)", marginBottom: 24 }}>👑</div>
-                                <div className="podium-box" style={{ height: "auto" }}>
-                                    <div style={{ fontWeight: 800, fontSize: 24 }}>{players[0].name}</div>
-                                    <div style={{ color: "#94a3b8", fontSize: 14 }}>{players[0].team}</div>
-                                    <div style={{ marginTop: 4, fontSize: 12, color: "var(--primary)", fontWeight: 600 }}>{players[0].league ?? ""}</div>
-                                    <div style={{ marginTop: 24, fontSize: 48, fontWeight: 900, color: "#f59e0b" }}>
+                                <div className="player-avatar" style={{ transform: "scale(1.2)", marginBottom: 24, borderColor: "#f59e0b" }}>👑</div>
+                                <div className="podium-box">
+                                    <div style={{ fontWeight: 800, fontSize: 26, marginBottom: 6 }}>{players[0].name}</div>
+                                    <div style={{ color: "var(--text-muted)", fontSize: 14 }}>{players[0].team}</div>
+                                    <div style={{ marginTop: 8, fontSize: 13, color: "var(--primary)", fontWeight: 700, textTransform: "uppercase" }}>
+                                        {players[0].league ?? "Unknown"}
+                                    </div>
+                                    <div style={{ marginTop: 28, fontSize: 52, fontWeight: 950, color: "#f59e0b" }}>
                                         {players[0].score.toFixed(1)}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Ranking 3 (Right) */}
+                            {/* Ranking 3 (Right) - Bronze */}
                             <div className="podium-step rank-3">
-                                <div className="player-avatar">🥉</div>
-                                <div className="podium-box" style={{ height: "auto" }}>
-                                    <div style={{ fontWeight: 800, fontSize: 16 }}>{players[2].name}</div>
-                                    <div style={{ color: "#94a3b8", fontSize: 12 }}>{players[2].team}</div>
-                                    <div style={{ marginTop: 4, fontSize: 11, color: "var(--primary)" }}>{players[2].league ?? ""}</div>
-                                    <div style={{ marginTop: 16, fontSize: 28, fontWeight: 900, color: "#b45309" }}>
+                                <div className="player-avatar" style={{ borderColor: "#b45309" }}>🥉</div>
+                                <div className="podium-box">
+                                    <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 4 }}>{players[2].name}</div>
+                                    <div style={{ color: "var(--text-muted)", fontSize: 12 }}>{players[2].team}</div>
+                                    <div style={{ marginTop: 8, fontSize: 11, color: "var(--primary)", fontWeight: 600, textTransform: "uppercase" }}>
+                                        {players[2].league ?? "Unknown"}
+                                    </div>
+                                    <div style={{ marginTop: 20, fontSize: 32, fontWeight: 900, color: "#b45309" }}>
                                         {players[2].score.toFixed(1)}
                                     </div>
                                 </div>
