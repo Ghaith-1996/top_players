@@ -25,3 +25,19 @@ DEFAULT_CACHE_TTL_S = 15 * 60
 # Filtre anti “small sample”
 DEFAULT_MIN_MINUTES = 0
 DEFAULT_LIMIT = 50
+
+# Competition Mappings
+LEAGUE_TO_CUPS = {
+    47: [132, 133],     # Premier League -> FA Cup, EFL Cup
+    87: [135, 136],     # La Liga -> Copa del Rey, Supercopa
+    54: [139, 140],     # Bundesliga -> DFB Pokal, DFL Supercup
+    55: [137, 138],     # Serie A -> Coppa Italia, Supercoppa
+    53: [141, 142],     # Ligue 1 -> Coupe de France, Trophée des Champions
+}
+
+INTERNATIONAL_CUPS = [
+    42,   # Champions League
+    73,   # Europa League
+    9161, # Conference League
+    77,   # UEFA Super Cup
+]

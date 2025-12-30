@@ -44,10 +44,12 @@ def get_players(
     cache_ttl_s: int = Query(DEFAULT_CACHE_TTL_S, ge=0, le=3600),
 ):
     """
-    Retourne les joueurs triés par score décroissant.
+    Retourne les joueurs triés par score décroissant, en agrégeant les stats
+    de la ligue, des coupes nationales et des compétitions européennes.
     """
-    # Reverting to simple cache key format (v3 to invalidate previous)
-    cache_key = f"players:v3:{league_id}:{season}:{min_minutes}:{limit}"
+    from src.config import LEAGUE_TO_CUPS, INTERNATIONAL_CUPS
+
+    cache_key = f"players:v4:{league_id}:{season}:{min_minutes}:{limit}"
     cached = CACHE.get(cache_key)
     if cached is not None:
         return cached
@@ -61,58 +63,69 @@ def get_players(
     }
     league_name = LEAGUE_MAP.get(league_id, "Unknown League")
 
-    rows = fotmob.fetch_league_players(league_id, season=season)
+    # Déterminer toutes les compétitions à fetcher
+    cids = [league_id]
+    if league_id in LEAGUE_TO_CUPS:
+        cids.extend(LEAGUE_TO_CUPS[league_id])
+    
+    # On ajoute toujours les coupes d'Europe car les joueurs de top ligues y participent
+    cids.extend(INTERNATIONAL_CUPS)
+
     players_by_id: dict[int, PlayerOut] = {}
 
-    for row in rows:
+    for cid in cids:
         try:
-            payload = fotmob.to_player_payload(row, league_name=league_name)
-            pid = payload["id"]
-            if pid <= 0:
-                continue
+            print(f"DEBUG: Fetching stats for competition {cid}...")
+            # On pourrait paralléliser ici plus tard
+            rows = fotmob.fetch_league_players(cid, season=season)
+            for row in rows:
+                payload = fotmob.to_player_payload(row, league_name=league_name)
+                pid = payload["id"]
+                if pid <= 0:
+                    continue
 
-            stats = payload["stats"]
-            # Skip if below min minutes (if data available)
-            if stats.minutes > 0 and stats.minutes < min_minutes:
-                continue
-
-            if pid in players_by_id:
-                # Fusionner les stats (cas rare intra-ligue, mais possible)
-                existing = players_by_id[pid]
-                for field in stats.model_fields:
-                    if field == "minutes":
-                        existing.stats.minutes = max(existing.stats.minutes, stats.minutes)
-                        continue
-                    val = getattr(stats, field)
-                    if isinstance(val, (int, float)):
-                        setattr(existing.stats, field, getattr(existing.stats, field) + val)
-
-                score, breakdown = compute_score(existing.stats)
-                existing.score = score
-                existing.breakdown = breakdown
-            else:
-                score, breakdown = compute_score(stats)
-                players_by_id[pid] = PlayerOut(
-                    id=pid,
-                    name=payload["name"],
-                    team=payload.get("team"),
-                    league=payload.get("league"),
-                    position=payload.get("position"),
-                    stats=stats,
-                    score=score,
-                    breakdown=breakdown,
-                    raw=payload.get("raw", {}),
-                )
+                stats = payload["stats"]
+                
+                if pid in players_by_id:
+                    existing = players_by_id[pid]
+                    # Fusionner les stats
+                    for field in stats.model_fields:
+                        val = getattr(stats, field)
+                        if isinstance(val, (int, float)):
+                            current_val = getattr(existing.stats, field)
+                            setattr(existing.stats, field, current_val + val)
+                    
+                    # Recalculer le score après fusion
+                    score, breakdown = compute_score(existing.stats)
+                    existing.score = score
+                    existing.breakdown = breakdown
+                else:
+                    score, breakdown = compute_score(stats)
+                    players_by_id[pid] = PlayerOut(
+                        id=pid,
+                        name=payload["name"],
+                        team=payload.get("team"),
+                        league=payload.get("league"),
+                        position=payload.get("position"),
+                        stats=stats,
+                        score=score,
+                        breakdown=breakdown,
+                        raw=payload.get("raw", {}),
+                    )
         except Exception as e:
-            import traceback
-            traceback.print_exc()
-            print(f"Error processing row: {e}")
+            print(f"Error fetching/processing competition {cid}: {e}")
             continue
 
-    # Sort by score
-    all_players = list(players_by_id.values())
-    all_players.sort(key=lambda x: x.score, reverse=True)
-    result = all_players[:limit]
+    # Filtrage par minutes après agrégation
+    filtered_players = [
+        p for p in players_by_id.values() 
+        if p.stats.minutes >= min_minutes
+    ]
+
+    # Tri par score
+    filtered_players.sort(key=lambda x: x.score, reverse=True)
+    result = filtered_players[:limit]
 
     CACHE.set(cache_key, result, ttl_s=cache_ttl_s)
     return result
+

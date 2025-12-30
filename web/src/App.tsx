@@ -68,9 +68,12 @@ export default function App() {
                     Top Players Index
                 </h1>
 
-                <div style={{ display: "inline-flex", gap: 8, background: "#1e293b", padding: 6, borderRadius: 12, border: "1px solid var(--border)", marginBottom: 12 }}>
-                    <button className={`nav-tab ${mode === "explorer" ? "active" : ""}`} onClick={() => setMode("explorer")}>Explorer</button>
-                    <button className={`nav-tab ${mode === "top10" ? "active" : ""}`} onClick={() => setMode("top10")}>Top 10 Rankings</button>
+                <div style={{ display: "inline-flex", gap: 8, background: "rgba(30, 41, 59, 0.5)", backdropFilter: "blur(8px)", padding: 6, borderRadius: 12, border: "1px solid var(--border)", marginBottom: 12 }}>
+                    <button className={`nav-tab ${mode === "explorer" ? "active" : ""}`} onClick={() => setMode("explorer")}>League Explorer</button>
+                    <button className={`nav-tab ${mode === "top10" ? "active" : ""}`} onClick={() => setMode("top10")}>Elite Rankings</button>
+                </div>
+                <div style={{ marginTop: 8, fontSize: 11, color: "var(--primary)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                    Stats aggregated: Domestic League + Cups + UCL/UEL
                 </div>
             </header>
 
@@ -321,11 +324,19 @@ export default function App() {
                 </>
             )}
 
-            <footer style={{ marginTop: 40, display: "flex", alignItems: "center", gap: 10, color: "#64748b" }}>
-                <Info size={16} />
-                <small>
-                    Score: Goals (5.0), Assists (3.0), Penalty Won (2.0), Big Chance Missed (-1.0), Poss. Won 3rd (0.2).
-                </small>
+            <footer style={{ marginTop: 60, padding: "40px 0", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 16, color: "#64748b" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Info size={16} />
+                    <small>
+                        <b>Scoring Weights:</b> Goals: 5.0 | Assists: 3.0 | Penalty Won: 2.0 | Big Chance Missed: -1.0 | Poss. Won 3rd: 0.2
+                    </small>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <RefreshCw size={16} />
+                    <small>
+                        Data is aggregated across domestic leagues, national cups (FA Cup, Copa del Rey, etc.), and European trophies (UCL, UEL, UECL).
+                    </small>
+                </div>
             </footer>
         </div>
     );

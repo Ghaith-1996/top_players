@@ -12,19 +12,19 @@
 body {
     margin: 0;
     padding: 0;
-    background: var(--bg-dark);
+    background: radial-gradient(circle at top left, #1e293b 0%, #0f172a 100%);
     color: var(--text-main);
     min-height: 100vh;
 }
 
 .container {
-    animation: fadeIn 0.6s ease-out;
+    animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(20px);
     }
 
     to {
@@ -34,23 +34,25 @@ body {
 }
 
 .card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    transition: all 0.3s ease;
+    background: rgba(30, 41, 59, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .podium-card {
-    border: 1px solid rgba(96, 165, 250, 0.2);
-    background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.8) 100%);
+    border: 1px solid rgba(96, 165, 250, 0.3);
 }
 
 .podium-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-8px) scale(1.02);
     border-color: var(--primary);
-    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 40px -10px rgba(96, 165, 250, 0.2);
 }
+
 
 .row {
     display: flex;
