@@ -77,36 +77,53 @@ def get_players(
     bonus_service = BonusService(fotmob._client)
 
     top4_ids = bonus_service.get_top4_teams(league_id)
+    
+    # On garde une trace des minutes déjà ajoutées par (joueur, compétition)
+    # pour éviter de sommer les minutes à chaque catégorie de stat fetchée
+    minutes_added_per_comp: dict[tuple[int, int], int] = {}
 
-    # On récupère toutes les lignes de stats agrégées
-    all_rows = []
     for cid in cids:
         try:
             print(f"DEBUG: Fetching stats for competition {cid}...")
-            all_rows.extend(fotmob.fetch_league_players(cid, season=season))
-        except Exception:
+            rows = fotmob.fetch_league_players(cid, season=season)
+            for row in rows:
+                payload = fotmob.to_player_payload(row, league_name=league_name)
+                pid = payload["id"]
+                if pid <= 0: continue
+                stats = payload["stats"]
+                
+                if pid not in players_by_id:
+                    players_by_id[pid] = PlayerOut(
+                        id=pid, name=payload["name"], team=payload.get("team"),
+                        league=payload.get("league"), position=payload.get("position"),
+                        stats=stats, score=0.0, breakdown={}, raw=payload.get("raw", {})
+                    )
+                    # On enregistre les minutes initiales pour cette compétition
+                    minutes_added_per_comp[(pid, cid)] = stats.minutes
+                else:
+                    existing = players_by_id[pid]
+                    # On somme toutes les stats SAUF les minutes
+                    for field in stats.model_fields:
+                        if field == "minutes":
+                            continue
+                        val = getattr(stats, field)
+                        if isinstance(val, (int, float)):
+                            setattr(existing.stats, field, getattr(existing.stats, field) + val)
+                    
+                    # Pour les minutes, on ne les ajoute que si c'est une NOUVELLE compétition
+                    # Si c'est la même compétition, on prend le max (pour éviter les doublons de catégories)
+                    if (pid, cid) not in minutes_added_per_comp:
+                        existing.stats.minutes += stats.minutes
+                        minutes_added_per_comp[(pid, cid)] = stats.minutes
+                    else:
+                        # On s'assure d'avoir la valeur de minutes la plus précise pour cette comp
+                        current_max = max(minutes_added_per_comp[(pid, cid)], stats.minutes)
+                        diff = current_max - minutes_added_per_comp[(pid, cid)]
+                        existing.stats.minutes += diff
+                        minutes_added_per_comp[(pid, cid)] = current_max
+        except Exception as e:
+            print(f"Error fetching/processing competition {cid}: {e}")
             continue
-
-    for row in all_rows:
-        try:
-            payload = fotmob.to_player_payload(row, league_name=league_name)
-            pid = payload["id"]
-            if pid <= 0: continue
-            stats = payload["stats"]
-            
-            if pid in players_by_id:
-                existing = players_by_id[pid]
-                for field in stats.model_fields:
-                    val = getattr(stats, field)
-                    if isinstance(val, (int, float)):
-                        setattr(existing.stats, field, getattr(existing.stats, field) + val)
-            else:
-                players_by_id[pid] = PlayerOut(
-                    id=pid, name=payload["name"], team=payload.get("team"),
-                    league=payload.get("league"), position=payload.get("position"),
-                    stats=stats, score=0.0, breakdown={}, raw=payload.get("raw", {})
-                )
-        except Exception: continue
 
     # Calcul initial
     all_players = list(players_by_id.values())
