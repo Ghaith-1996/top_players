@@ -16,6 +16,19 @@ class ScoringWeights:
     bigChanceMissed: float = -1.0
     expectedGoals: float = 0.0
     expectedAssists: float = 0.0
+    
+    # Bonuses
+    bonusGoalTop4: float = 2.0
+    bonusAssistTop4: float = 1.0
+    
+    # International Stages Bonuses (Multipliers or flat addition)
+    # We'll use these as flat additions per event
+    bonusGoalUclQF: float = 2.0
+    bonusAssistUclQF: float = 1.0
+    bonusGoalUclSF: float = 4.0
+    bonusAssistUclSF: float = 3.0
+    bonusGoalUclFinal: float = 10.0
+    bonusAssistUclFinal: float = 6.0
 
 WEIGHTS = ScoringWeights()
 

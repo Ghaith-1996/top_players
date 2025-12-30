@@ -63,68 +63,73 @@ def get_players(
     }
     league_name = LEAGUE_MAP.get(league_id, "Unknown League")
 
+    from src.config import LEAGUE_TO_CUPS, INTERNATIONAL_CUPS
+
     # Déterminer toutes les compétitions à fetcher
     cids = [league_id]
     if league_id in LEAGUE_TO_CUPS:
         cids.extend(LEAGUE_TO_CUPS[league_id])
-    
-    # On ajoute toujours les coupes d'Europe car les joueurs de top ligues y participent
     cids.extend(INTERNATIONAL_CUPS)
 
+    # --- Étape 1: Calcul des scores de base ---
     players_by_id: dict[int, PlayerOut] = {}
+    from src.logic.bonus_service import BonusService
+    bonus_service = BonusService(fotmob._client)
 
+    top4_ids = bonus_service.get_top4_teams(league_id)
+
+    # On récupère toutes les lignes de stats agrégées
+    all_rows = []
     for cid in cids:
         try:
             print(f"DEBUG: Fetching stats for competition {cid}...")
-            # On pourrait paralléliser ici plus tard
-            rows = fotmob.fetch_league_players(cid, season=season)
-            for row in rows:
-                payload = fotmob.to_player_payload(row, league_name=league_name)
-                pid = payload["id"]
-                if pid <= 0:
-                    continue
-
-                stats = payload["stats"]
-                
-                if pid in players_by_id:
-                    existing = players_by_id[pid]
-                    # Fusionner les stats
-                    for field in stats.model_fields:
-                        val = getattr(stats, field)
-                        if isinstance(val, (int, float)):
-                            current_val = getattr(existing.stats, field)
-                            setattr(existing.stats, field, current_val + val)
-                    
-                    # Recalculer le score après fusion
-                    score, breakdown = compute_score(existing.stats)
-                    existing.score = score
-                    existing.breakdown = breakdown
-                else:
-                    score, breakdown = compute_score(stats)
-                    players_by_id[pid] = PlayerOut(
-                        id=pid,
-                        name=payload["name"],
-                        team=payload.get("team"),
-                        league=payload.get("league"),
-                        position=payload.get("position"),
-                        stats=stats,
-                        score=score,
-                        breakdown=breakdown,
-                        raw=payload.get("raw", {}),
-                    )
-        except Exception as e:
-            print(f"Error fetching/processing competition {cid}: {e}")
+            all_rows.extend(fotmob.fetch_league_players(cid, season=season))
+        except Exception:
             continue
 
-    # Filtrage par minutes après agrégation
-    filtered_players = [
-        p for p in players_by_id.values() 
-        if p.stats.minutes >= min_minutes
-    ]
+    for row in all_rows:
+        try:
+            payload = fotmob.to_player_payload(row, league_name=league_name)
+            pid = payload["id"]
+            if pid <= 0: continue
+            stats = payload["stats"]
+            
+            if pid in players_by_id:
+                existing = players_by_id[pid]
+                for field in stats.model_fields:
+                    val = getattr(stats, field)
+                    if isinstance(val, (int, float)):
+                        setattr(existing.stats, field, getattr(existing.stats, field) + val)
+            else:
+                players_by_id[pid] = PlayerOut(
+                    id=pid, name=payload["name"], team=payload.get("team"),
+                    league=payload.get("league"), position=payload.get("position"),
+                    stats=stats, score=0.0, breakdown={}, raw=payload.get("raw", {})
+                )
+        except Exception: continue
 
-    # Tri par score
+    # Calcul initial
+    all_players = list(players_by_id.values())
+    for p in all_players:
+        score, breakdown = compute_score(p.stats)
+        p.score = score
+        p.breakdown = breakdown
+
+    # --- Étape 2: Raffinement avec les Bonus (Top 50 seulement pour la performance) ---
+    all_players.sort(key=lambda x: x.score, reverse=True)
+    top_candidates = all_players[:50]
+
+    for p in top_candidates:
+        bonus_score, bonus_breakdown = bonus_service.calculate_player_bonuses(p.id, top4_ids, season=season)
+        if bonus_score > 0:
+            p.score += bonus_score
+            p.breakdown.update(bonus_breakdown)
+
+    # Filtrage et tri final
+    filtered_players = [p for p in all_players if p.stats.minutes >= min_minutes]
     filtered_players.sort(key=lambda x: x.score, reverse=True)
     result = filtered_players[:limit]
+
 
     CACHE.set(cache_key, result, ttl_s=cache_ttl_s)
     return result
