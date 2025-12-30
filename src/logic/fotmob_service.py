@@ -72,17 +72,19 @@ def _get_int(row: Dict[str, Any], *keys: str, default: int = 0) -> int:
     return default
 
 def _get_str(row: Dict[str, Any], *keys: str, default: Optional[str] = None) -> Optional[str]:
-    all_keys = list(keys) + ["ParticipantName", "name", "playerName"]
-    for k in all_keys:
+    for k in keys:
         v = row.get(k)
         if v is None and "participant" in row:
             v = row["participant"].get(k)
-        if v is None:
-            continue
-        s = str(v).strip()
-        if s:
-            return s
+        if v is not None:
+            s = str(v).strip()
+            if s:
+                return s
     return default
+
+def _get_player_name(row: Dict[str, Any]) -> str:
+    """Spécifique pour le nom du joueur car FotMob utilise souvent des clés très variées."""
+    return _get_str(row, "ParticipantName", "name", "playerName", "player_name", "ParticipantShortName", default="Unknown") or "Unknown"
 
 
 
@@ -163,9 +165,9 @@ class FotmobService:
         Transforme un “row” en structure standard (id, name, team, position, stats canon).
         """
         player_id = _get_int(row, "id", "playerId", "player_id", default=0)
-        name = _get_str(row, "name", "playerName", "player_name", default="Unknown") or "Unknown"
-        team = _get_str(row, "team", "teamName", "team_name", "club", default=None)
-        position = _get_str(row, "position", "pos", default=None)
+        name = _get_player_name(row)
+        team = _get_str(row, "teamName", "TeamName", "team_name", "club", "team", default=None)
+        position = _get_str(row, "position", "pos", "positionDescription", default=None)
 
         # stats peuvent être directement dans row ou sous row["stats"]
         stats_raw: Dict[str, Any] = {}

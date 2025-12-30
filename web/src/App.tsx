@@ -234,7 +234,7 @@ export default function App() {
                                 <div className="rank-number">{idx + 4}</div>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ fontWeight: 700 }}>{p.name}</div>
-                                    <div style={{ fontSize: 12, color: "#94a3b8" }}>{p.team} • {p.position}</div>
+                                    <div style={{ fontSize: 12, color: "#94a3b8" }}>{p.team}</div>
                                     <div style={{ fontSize: 11, color: "var(--primary)", marginTop: 2 }}>{p.league}</div>
                                 </div>
                                 <div style={{ fontSize: 18, fontWeight: 800, color: "#60a5fa" }}>
@@ -286,7 +286,7 @@ export default function App() {
                                         <td style={{ padding: "16px 20px", color: "#64748b", fontWeight: 600 }}>{idx + 1}</td>
                                         <td style={{ padding: "16px 20px" }}>
                                             <div style={{ fontWeight: 600 }}>{p.name}</div>
-                                            <div style={{ fontSize: 12, color: "#94a3b8" }}>{p.team ?? "—"} • {p.position ?? "?"}</div>
+                                            <div style={{ fontSize: 12, color: "#94a3b8" }}>{p.team ?? "—"}</div>
                                         </td>
                                         <td style={{ padding: "16px 20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>{p.stats.minutes}</td>
                                         <td style={{ padding: "16px 20px" }}>
