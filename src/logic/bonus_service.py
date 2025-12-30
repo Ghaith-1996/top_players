@@ -18,13 +18,13 @@ class BonusService:
             if not table_data:
                 return set()
             
-            # On cherche dans la table principale
+            # Structure: table -> [ { 'data': { 'table': { 'all': [...] } } } ]
             table_rows = []
             if isinstance(table_data, list) and len(table_data) > 0:
-                # Structure: table -> [ { 'table': { 'all': [...] } } ]
-                table_rows = table_data[0].get("table", {}).get("all", [])
+                inner_data = table_data[0].get("data", {})
+                table_rows = inner_data.get("table", {}).get("all", [])
             
-            top4 = {row.get("id") for row in table_rows[:4] if row.get("id")}
+            top4 = {int(row.get("id")) for row in table_rows[:4] if row.get("id")}
             self._top4_cache[league_id] = top4
             return top4
         except Exception as e:
@@ -58,9 +58,12 @@ class BonusService:
                 if goals == 0 and assists == 0:
                     continue
 
-                opponent_id = m.get("opponentId")
-                league_id = m.get("leagueId")
-                round_name = str(m.get("roundName", "")).lower()
+                opp_raw = m.get("opponentTeamId")
+                if opp_raw is None: continue
+                opponent_id = int(opp_raw)
+                m_league_id = m.get("leagueId")
+                # Certains champs peuvent être dans 'stage' ou 'roundName'
+                stage_name = str(m.get("stage") or m.get("roundName") or "").lower()
 
                 # 1. Bonus Top 4 (Ligue Domestique)
                 if opponent_id in top4_ids:
@@ -74,9 +77,9 @@ class BonusService:
                         breakdown["bonusAssistTop4"] += val
 
                 # 2. Bonus Compétitions Internationales (Stages)
-                if league_id in INTERNATIONAL_CUPS:
+                if m_league_id in INTERNATIONAL_CUPS:
                     # Quart de finale
-                    if "quarter" in round_name or "1/4" in round_name:
+                    if "quarter" in stage_name or "1/4" in stage_name:
                         if goals > 0:
                             val = goals * WEIGHTS.bonusGoalUclQF
                             bonus_score += val
@@ -86,7 +89,7 @@ class BonusService:
                             bonus_score += val
                             breakdown["bonusUclQF"] += val
                     # Demi-finale
-                    elif "semi" in round_name or "1/2" in round_name:
+                    elif "semi" in stage_name or "1/2" in stage_name:
                         if goals > 0:
                             val = goals * WEIGHTS.bonusGoalUclSF
                             bonus_score += val
@@ -96,7 +99,7 @@ class BonusService:
                             bonus_score += val
                             breakdown["bonusUclSF"] += val
                     # Finale
-                    elif "final" in round_name and "semi" not in round_name and "quarter" not in round_name:
+                    elif "final" in stage_name and "semi" not in stage_name and "quarter" not in stage_name:
                         if goals > 0:
                             val = goals * WEIGHTS.bonusGoalUclFinal
                             bonus_score += val
