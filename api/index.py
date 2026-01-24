@@ -61,45 +61,45 @@ def get_players(
     db_results = query.all()
     
     output = []
-    for s in db_results:
+    for p_stats in db_results:
         # Re-construction du modèle Canonique
         canon = CanonicalStats(
-            minutes=s.minutes,
-            goal=s.goals,
-            assist=s.assists,
-            yellowCard=s.yellow_cards,
-            redCard=s.red_cards,
-            chancesCreated=s.chances_created,
-            bigChancesCreated=s.big_chances_created,
-            tackles=s.tackles,
-            interceptions=s.interceptions,
-            recoveries=s.recoveries,
-            penaltyWon=s.penalty_won,
-            possWonAtt3rd=s.poss_won_att_3rd,
-            bigChanceMissed=s.big_chance_missed,
-            expectedGoals=s.expected_goals,
-            expectedAssists=s.expected_assists
+            minutes=p_stats.minutes,
+            goal=p_stats.goals,
+            assist=p_stats.assists,
+            yellowCard=p_stats.yellow_cards,
+            redCard=p_stats.red_cards,
+            chancesCreated=p_stats.chances_created,
+            bigChancesCreated=p_stats.big_chances_created,
+            tackles=p_stats.tackles,
+            interceptions=p_stats.interceptions,
+            recoveries=p_stats.recoveries,
+            penaltyWon=p_stats.penalty_won,
+            possWonAtt3rd=p_stats.poss_won_att_3rd,
+            bigChanceMissed=p_stats.big_chance_missed,
+            expectedGoals=p_stats.expected_goals,
+            expectedAssists=p_stats.expected_assists
         )
 
         # Construction du breakdown de score
         breakdown = {
-            "base_score": s.base_score,
-            "bonusGoalTop4": s.bonus_goal_top4,
-            "bonusAssistTop4": s.bonus_assist_top4,
-            "bonusUclQF": s.bonus_ucl_qf,
-            "bonusUclSF": s.bonus_ucl_sf,
-            "bonusUclFinal": s.bonus_ucl_final,
-            "bonusMotm": s.bonus_motm
+            "base_score": p_stats.base_score,
+            "bonusGoalTop4": p_stats.bonus_goal_top4,
+            "bonusAssistTop4": p_stats.bonus_assist_top4,
+            "bonusUclQF": p_stats.bonus_ucl_qf,
+            "bonusUclSF": p_stats.bonus_ucl_sf,
+            "bonusUclFinal": p_stats.bonus_ucl_final,
+            "bonusMotm": p_stats.bonus_motm
         }
 
         output.append(PlayerOut(
-            id=s.player_id,
-            name=s.player.name,
-            team=s.player.team.name if s.player.team else "Unknown",
-            league=s.player.team.league.name if (s.player.team and s.player.team.league) else "Unknown",
-            position=s.player.position,
+            id=p_stats.player_id,
+            name=p_stats.player.name,
+            team=p_stats.player.team.name if p_stats.player.team else "Unknown",
+            league=p_stats.player.team.league.name if (p_stats.player.team and p_stats.player.team.league) else "Unknown",
+            position=p_stats.player.position,
             stats=canon,
-            score=s.total_score,
+            score=p_stats.total_score,
             breakdown=breakdown
         ))
 

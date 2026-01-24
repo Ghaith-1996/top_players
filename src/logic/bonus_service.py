@@ -85,36 +85,20 @@ class BonusService:
 
                 # 2. Bonus Compétitions Internationales (Stages)
                 if m_league_id in INTERNATIONAL_CUPS:
-                    # Quart de finale
+                    g_w, a_w, b_key = 0.0, 0.0, None
+
                     if "quarter" in stage_name or "1/4" in stage_name:
-                        if goals > 0:
-                            val = goals * WEIGHTS.bonusGoalUclQF
-                            bonus_score += val
-                            breakdown["bonusUclQF"] += val
-                        if assists > 0:
-                            val = assists * WEIGHTS.bonusAssistUclQF
-                            bonus_score += val
-                            breakdown["bonusUclQF"] += val
-                    # Demi-finale
+                        g_w, a_w, b_key = WEIGHTS.bonusGoalUclQF, WEIGHTS.bonusAssistUclQF, "bonusUclQF"
                     elif "semi" in stage_name or "1/2" in stage_name:
-                        if goals > 0:
-                            val = goals * WEIGHTS.bonusGoalUclSF
+                        g_w, a_w, b_key = WEIGHTS.bonusGoalUclSF, WEIGHTS.bonusAssistUclSF, "bonusUclSF"
+                    elif "final" in stage_name:
+                        g_w, a_w, b_key = WEIGHTS.bonusGoalUclFinal, WEIGHTS.bonusAssistUclFinal, "bonusUclFinal"
+                    
+                    if b_key:
+                        val = (goals * g_w) + (assists * a_w)
+                        if val > 0:
                             bonus_score += val
-                            breakdown["bonusUclSF"] += val
-                        if assists > 0:
-                            val = assists * WEIGHTS.bonusAssistUclSF
-                            bonus_score += val
-                            breakdown["bonusUclSF"] += val
-                    # Finale
-                    elif "final" in stage_name and "semi" not in stage_name and "quarter" not in stage_name:
-                        if goals > 0:
-                            val = goals * WEIGHTS.bonusGoalUclFinal
-                            bonus_score += val
-                            breakdown["bonusUclFinal"] += val
-                        if assists > 0:
-                            val = assists * WEIGHTS.bonusAssistUclFinal
-                            bonus_score += val
-                            breakdown["bonusUclFinal"] += val
+                            breakdown[b_key] += val
 
             return float(round(bonus_score, 2)), breakdown
         except Exception as e:
