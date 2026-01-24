@@ -26,9 +26,15 @@ def sync_data():
         53: "Ligue 1"
     }
     
-    season = "2024/2025"
+    SEASONS = [
+        "2024/2025",
+        "2023/2024",
+        "2022/2023"
+    ]
     
     try:
+        for season in SEASONS:
+            print(f"\n=== Syncing Season {season} ===")
         for league_id, league_name in LEAGUES.items():
             print(f"--- Syncing {league_name} ---")
             
@@ -48,10 +54,14 @@ def sync_data():
                 cids.extend(LEAGUE_TO_CUPS[league_id])
             cids.extend(INTERNATIONAL_CUPS)
             
-            players_data = {} # pid -> stats aggregation
+            # Global stats for this league (Player ID -> Aggregated Stats Payload)
+            players_data = {} 
             
             for cid in cids:
                 print(f"  Fetching competition {cid}...")
+                # Temporaire pour NE PAS compter deux fois le même joueur dans UNE SEULE compétition
+                players_in_this_comp = {} 
+                
                 try:
                     rows = fotmob.fetch_league_players(cid, season=season)
                     if not rows:
@@ -62,19 +72,29 @@ def sync_data():
                         pid = payload["id"]
                         if pid <= 0: continue
                         
-                        if pid not in players_data:
-                            players_data[pid] = payload
+                        new_stats = payload["stats"]
+                        
+                        if pid not in players_in_this_comp:
+                            players_in_this_comp[pid] = payload
                         else:
-                            # Merge stats (simple sum for now)
-                            p_stats = payload["stats"]
+                            # Dans la MÊME compétition, on prend le MAX (pour éviter les doublons Goals vs Assists)
+                            existing_s = players_in_this_comp[pid]["stats"]
+                            for field_name in new_stats.model_dump().keys():
+                                current_val = getattr(existing_s, field_name)
+                                fresh_val = getattr(new_stats, field_name)
+                                setattr(existing_s, field_name, max(current_val, fresh_val))
+                    
+                    # Maintenant on fusionne les stats de CETTE compétition dans le total global (addition)
+                    for pid, p_payload in players_in_this_comp.items():
+                        if pid not in players_data:
+                            players_data[pid] = p_payload
+                        else:
+                            # Entre DEUX compétitions différentes (ex: PL et UCL), on ADDITIONNE
                             e_stats = players_data[pid]["stats"]
-                            # Iterating over dictionary instead of model_fields for Pydantic V2 compatibility
-                            for field_name in p_stats.model_dump().keys():
-                                if field_name != "minutes":
-                                    current_val = getattr(e_stats, field_name)
-                                    new_val = getattr(p_stats, field_name)
-                                    setattr(e_stats, field_name, current_val + new_val)
-                            e_stats.minutes += p_stats.minutes
+                            n_stats = p_payload["stats"]
+                            for field_name in n_stats.model_dump().keys():
+                                setattr(e_stats, field_name, getattr(e_stats, field_name) + getattr(n_stats, field_name))
+                                
                 except Exception as e:
                     print(f"  Error fetching {cid}: {e}")
 
@@ -113,6 +133,13 @@ def sync_data():
                 base_score, breakdown = compute_score(stats)
                 
                 # Only calculate bonuses for top performers to save API calls
+                # For previous seasons, we might skip detailed bonus calc if needed, 
+                # but let's try to fetch recent matches. 
+                # Note: 'calculate_player_bonuses' inspects 'recentMatches', which 
+                # might only return *current* recent matches if the API doesn't support 
+                # historical match lookups easily.
+                # If FotMob API doesn't support historic matches via simple endpoint, 
+                # bonuses might be inaccurate for old seasons.
                 bonus_score, bonus_breakdown = bonus_service.calculate_player_bonuses(pid, top4_ids, season=season)
                 
                 # Update or Create Stats
@@ -157,7 +184,7 @@ def sync_data():
                 db_stats.total_score = base_score + bonus_score
                 
                 db.commit()
-                print(f"    Synced {name} - Score: {db_stats.total_score:.2f}")
+                print(f"    Synced {name} ({season}) - Score: {db_stats.total_score:.2f}")
 
     except Exception as e:
         print(f"Global Sync Error: {e}")
