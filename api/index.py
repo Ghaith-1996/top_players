@@ -49,9 +49,10 @@ def get_players(
     query = (
         db.query(PlayerStats)
         .join(Player, PlayerStats.player_id == Player.player_id)
-        .outerjoin(Team, Player.team_id == Team.team_id)
+        .join(Team, Player.team_id == Team.team_id)
         .outerjoin(League, PlayerStats.competition_id == League.league_id)
         .filter(PlayerStats.competition_id == league_id)
+        .filter(Team.league_id == league_id)
         .filter(PlayerStats.season == season)
         .filter(PlayerStats.minutes >= min_minutes)
         .order_by(desc(PlayerStats.total_score))
