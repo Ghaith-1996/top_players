@@ -160,6 +160,34 @@ class FotmobService:
             
         return all_flattened_rows
 
+    def get_league_team_ids(self, league_id: int, season: str = None) -> set[int]:
+        """Récupère tous les IDs d'équipes valides pour cette ligue (via le classement/table)."""
+        import requests
+        try:
+            if season:
+                data = self._client.get_league(league_id, season=season)
+            else:
+                data = self._client.get_league(league_id)
+            
+            team_ids = set()
+            tables = data.get("table", [])
+            if isinstance(tables, list):
+                for t in tables:
+                    # Structure: t['data']['table']['all'] -> list of teams
+                    t_data = t.get("data", {})
+                    if "table" in t_data:
+                        inner = t_data["table"]
+                        # 'all' contient le classement général
+                        teams = inner.get("all", [])
+                        for team in teams:
+                            tid = team.get("id")
+                            if tid:
+                                team_ids.add(int(tid))
+            return team_ids
+        except Exception as e:
+            print(f"Error fetching team IDs for league {league_id}: {e}")
+            return set()
+
     def to_player_payload(self, row: Dict[str, Any], league_name: Optional[str] = None) -> Dict[str, Any]:
         """
         Transforme un “row” en structure standard (id, name, team, position, stats canon).
@@ -167,6 +195,24 @@ class FotmobService:
         player_id = _get_int(row, "id", "playerId", "player_id", default=0)
         name = _get_player_name(row)
         team = _get_str(row, "teamName", "TeamName", "team_name", "club", "team", default=None)
+        
+        # FIX: Manual extraction of team_id to avoid _get_int's PlayerId fallbacks
+        team_id = 0
+        # Priority keys
+        for key in ["TeamId", "teamId", "team_id", "contestantId", "participantId"]:
+             val = row.get(key)
+             if val is not None:
+                 try:
+                     team_id = int(val)
+                     # If we found a plausible ID (not 0), stop. 
+                     # Note: participantId IS risky if it's actually the player, but sometimes it's the team in team-lists. 
+                     # In 'StatList', ParticipantId is Player, TeamId is Team. 
+                     # So we prioritize TeamId.
+                     if team_id > 0:
+                         break
+                 except:
+                     pass
+        
         position = _get_str(row, "position", "pos", "positionDescription", default=None)
 
         # stats peuvent être directement dans row ou sous row["stats"]
@@ -183,6 +229,7 @@ class FotmobService:
             "id": player_id,
             "name": name,
             "team": team,
+            "team_id": team_id,
             "position": position,
             "league": league_name,
             "stats": canon_stats,

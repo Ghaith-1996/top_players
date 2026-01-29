@@ -69,7 +69,7 @@ export default function App() {
                 <h1 className="hero-title">
                     Top <span className="accent">Players</span>
                     <div style={{ fontSize: "1rem", letterSpacing: "0.5em", color: "var(--text-tertiary)", marginTop: 10, fontWeight: 400 }}>
-                        Global Performance Index
+                        your favorite players in a ranked list
                     </div>
                 </h1>
 
@@ -80,14 +80,14 @@ export default function App() {
                             onClick={() => setMode("explorer")}
                         >
                             <Filter size={14} style={{ display: 'inline', marginRight: 6 }} />
-                            League Explorer
+                            Ranking per league
                         </button>
                         <button 
                             className={`mode-btn ${mode === "top10" ? "active" : ""}`} 
                             onClick={() => setMode("top10")}
                         >
                             <Trophy size={14} style={{ display: 'inline', marginRight: 6 }} />
-                            Elite Rankings
+                            Top 10
                         </button>
                     </div>
                 </div>
@@ -167,6 +167,7 @@ export default function App() {
 
             {mode === "top10" ? (
                 <div style={{ animation: "fadeIn 0.5s ease" }}>
+                    <h3 className="section-title">TOP 10</h3>
                     {players.length >= 3 ? (
                         <div className="podium-grid">
                             
@@ -207,7 +208,7 @@ export default function App() {
                         <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>INSUFFICIENT DATA FOR PODIUM</div>
                     )}
 
-                    <h3 className="section-title">CHALLENGERS</h3>
+                    
                     
                     <div className="data-grid">
                         <div className="grid-row grid-header">
@@ -235,7 +236,7 @@ export default function App() {
                         <div>PLAYER</div>
                         <div style={{textAlign: "center"}}>MIN</div>
                         <div>KEY STATS</div>
-                        <div style={{textAlign: "right"}}>INDEX</div>
+                        <div style={{textAlign: "right"}}>SCORE</div>
                     </div>
                     {players.map((p, idx) => (
                         <div key={p.id} className="grid-row">
